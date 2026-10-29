@@ -82,6 +82,25 @@ export default function Login() {
   </>
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
 
+  // ACAD preview: visually establish the two profiles without pretending that static hosting
+  // already provides separate cloud state. The shared guest mode remains explicitly a demo.
+  // Remove this gate only after D1 persistence, authorization and per-profile isolation pass tests.
+  if (typeof window !== 'undefined' && window.location.hostname.startsWith('acad-preview.')) return (
+    <div className="narrow" style={wrap}>
+      <div style={{ fontSize: 54, color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
+      <h1 style={{ fontSize: 34, fontWeight: 700, margin: '10px 0 4px' }}>ACAD</h1>
+      <p className="muted" style={{ marginBottom: 28 }}>Acompanhamento de treinos</p>
+      <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
+        <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
+        <button className="btn" disabled style={{ width: '100%', marginBottom: 10, opacity: .65 }}>Meu perfil — em preparação</button>
+        <button className="btn" disabled style={{ width: '100%', opacity: .65 }}>Perfil da minha mãe — em preparação</button>
+        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Os perfis serão liberados quando a sincronização segura com o Cloudflare D1 estiver pronta. Ainda não grave treinos reais.</p>
+      </div>
+      <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Explorar demonstração local</Button>
+      <p className="dim small" style={{ marginTop: 12, lineHeight: 1.5 }}>A demonstração usa o armazenamento deste navegador, não sincroniza entre aparelhos e não separa os dados de duas pessoas.</p>
+    </div>
+  )
+
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
   if (DEMO) return (
     <div className="narrow" style={wrap}>
