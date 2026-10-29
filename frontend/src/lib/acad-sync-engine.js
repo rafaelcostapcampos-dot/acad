@@ -26,6 +26,13 @@ export function createAcadSync({ readProfile, writeProfile }) {
     return structuredClone(remote.state || {})
   }
 
+  function restore(profileId, baseRevision) {
+    if (!valid(profileId) || !Number.isSafeInteger(baseRevision) || baseRevision < 0) throw new Error('Estado de sincronização inválido')
+    generation++
+    active = profileId
+    revision = baseRevision
+    blocked = false
+  }
   function save(state) {
     if (!active) return Promise.reject(new Error('Selecione um perfil antes de salvar'))
     if (blocked) return Promise.reject(new Error('Sincronização bloqueada; atualize o perfil'))
@@ -59,5 +66,5 @@ export function createAcadSync({ readProfile, writeProfile }) {
     revision = null
     blocked = false
   }
-  return { activate, save, status, deactivate }
+  return { activate, restore, save, status, deactivate }
 }
