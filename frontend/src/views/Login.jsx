@@ -93,7 +93,18 @@ export default function Login() {
     setProfileSummary('Consultando o banco de dados...')
     try {
       const data = await acadProfile(id)
-      setProfileSummary(`${data.name}: banco conectado, revisão ${data.revision}. Treinos registrados: ${Array.isArray(data.state?.workouts) ? data.state.workouts.length : 0}. A edição ainda não está habilitada.`)
+      // Never import the guest/demo profile into a cloud account implicitly.
+      // Persist the selected server snapshot in a separate namespace before reload.
+      const saved = localStorage.getItem('acad_profile_dirty_' + id) === '1'
+      if (saved) {
+        setProfileSummary('Este perfil tem alterações locais pendentes. Para evitar perda de dados, a troca foi bloqueada.')
+        return
+      }
+      localStorage.setItem('acad_profile_state_' + id, JSON.stringify(data.state || {}))
+      localStorage.setItem('acad_profile_revision_' + id, String(data.revision))
+      localStorage.setItem('acad_active_profile', id)
+      localStorage.setItem('gym_guest', '1')
+      window.location.reload()
     } catch (e) { setProfileSummary('Não foi possível consultar o perfil: ' + e.message) }
   }
   const pairDevice = async () => {
@@ -128,10 +139,10 @@ export default function Login() {
       <p className="muted" style={{ marginBottom: 28 }}>Acompanhamento de treinos</p>
       <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
-        <button className="btn" disabled={!paired} onClick={() => checkProfile('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — verificar nuvem</button>
-        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — verificar nuvem</button>
+        <button className="btn" disabled={!paired} onClick={() => checkProfile('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — abrir openGym completo</button>
+        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — abrir openGym completo</button>
         {profileSummary && <p className="muted small" role="status">{profileSummary}</p>}
-        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>A interface completa do openGym está disponível abaixo. A sincronização com o D1 ainda não está integrada às telas originais.</p>
+        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Escolha o perfil para entrar no openGym original. Os dados do visitante não serão transferidos automaticamente.</p>
       </div>
       {!paired && <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <label htmlFor="acad-pair-code" className="small">Autorizar este dispositivo (uma vez)</label>
