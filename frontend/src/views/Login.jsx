@@ -78,7 +78,7 @@ export default function Login() {
   }
   const head = <>
     <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
-    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>openGym</h1>
+    <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>Mãe maromba!</h1>
   </>
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
 
@@ -88,7 +88,7 @@ export default function Login() {
   if (typeof window !== 'undefined' && window.location.hostname.startsWith('acad-preview.')) return (
     <div className="narrow" style={wrap}>
       <div style={{ fontSize: 54, color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
-      <h1 style={{ fontSize: 34, fontWeight: 700, margin: '10px 0 4px' }}>ACAD</h1>
+      <h1 style={{ fontSize: 34, fontWeight: 700, margin: '10px 0 4px' }}>Mãe maromba!</h1>
       <p className="muted" style={{ marginBottom: 28 }}>Acompanhamento de treinos</p>
       <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
