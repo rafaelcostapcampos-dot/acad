@@ -11,5 +11,12 @@
     "run_worker_first": [
       "/acad-api/*"
     ]
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "acad-treinos-db",
+      "database_id": "15f0fb46-6317-4467-a6bf-54b83a4f2a9a"
+    }
+  ]
 }
