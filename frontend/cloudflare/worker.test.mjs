@@ -93,3 +93,22 @@ test('unknown profiles cannot be accessed', async () => {
   const f = fixture()
   assert.equal((await f.fetch('/acad-api/profiles/terceiro')).status, 404)
 })
+
+test('session endpoint reports unauthenticated without a session', async () => {
+  const f = fixture()
+  const res = await f.fetch('/acad-api/session')
+  assert.equal(res.status, 200)
+  assert.deepEqual(await res.json(), { authorized: false })
+})
+test('pairing requires same-origin POST and configured secrets', async () => {
+  const f = fixture()
+  const res = await f.fetch('/acad-api/session', 'POST', { code: 'anything' })
+  assert.equal(res.status, 403)
+  const sameOrigin = new Request('https://example.test/acad-api/session', {
+    method: 'POST',
+    headers: { origin: 'https://example.test', 'content-type': 'application/json' },
+    body: JSON.stringify({ code: 'anything' }),
+  })
+  const reply = await worker.fetch(sameOrigin, { DB: f.rows, ASSETS: { fetch: async () => new Response('site') } })
+  assert.equal(reply.status, 503)
+})
