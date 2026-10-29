@@ -6,6 +6,7 @@ import { t } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { guestAllowed } from '../lib/guest.js'
 import { useState, useRef, useEffect } from 'react'
+import { acadSession, acadProfile } from '../lib/acad-profile-api.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Segmented } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
@@ -79,6 +80,22 @@ export default function Login() {
   const [pairCode, setPairCode] = useState('')
   const [pairStatus, setPairStatus] = useState('')
   const [pairBusy, setPairBusy] = useState(false)
+  const [paired, setPaired] = useState(false)
+  const [profileSummary, setProfileSummary] = useState('')
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.hostname.startsWith('acad-preview.')) return
+    let alive = true
+    acadSession().then(s => { if (alive) setPaired(!!s.authorized) })
+      .catch(() => { if (alive) setPairStatus('Não foi possível verificar a autorização deste aparelho.') })
+    return () => { alive = false }
+  }, [])
+  const checkProfile = async id => {
+    setProfileSummary('Consultando o banco de dados...')
+    try {
+      const data = await acadProfile(id)
+      setProfileSummary(`${data.name}: banco conectado, revisão ${data.revision}. Treinos registrados: ${Array.isArray(data.state?.workouts) ? data.state.workouts.length : 0}. A edição ainda não está habilitada.`)
+    } catch (e) { setProfileSummary('Não foi possível consultar o perfil: ' + e.message) }
+  }
   const pairDevice = async () => {
     if (!pairCode.trim() || pairBusy) return
     setPairBusy(true)
@@ -90,7 +107,8 @@ export default function Login() {
       })
       if (!res.ok) throw new Error(res.status === 503 ? 'Código ainda não configurado no servidor.' : 'Código inválido ou acesso indisponível.')
       setPairCode('')
-      setPairStatus('Dispositivo autorizado. Os perfis serão liberados após a integração da sincronização.')
+      setPaired(true)
+      setPairStatus('Dispositivo autorizado. Agora é possível consultar os perfis no D1.')
     } catch (e) { setPairStatus(e.message) }
     finally { setPairBusy(false) }
   }
@@ -110,18 +128,19 @@ export default function Login() {
       <p className="muted" style={{ marginBottom: 28 }}>Acompanhamento de treinos</p>
       <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
-        <button className="btn" disabled style={{ width: '100%', marginBottom: 10, opacity: .65 }}>Meu perfil — em preparação</button>
-        <button className="btn" disabled style={{ width: '100%', opacity: .65 }}>Perfil da minha mãe — em preparação</button>
-        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Os perfis serão liberados quando a sincronização segura com o Cloudflare D1 estiver pronta. Ainda não grave treinos reais.</p>
+        <button className="btn" disabled={!paired} onClick={() => checkProfile('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — consultar D1</button>
+        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — consultar D1</button>
+        {profileSummary && <p className="muted small" role="status">{profileSummary}</p>}
+        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Consulta somente leitura. O registro de treinos continua desabilitado até a integração completa do openGym ao D1.</p>
       </div>
-      <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
+      {!paired && <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <label htmlFor="acad-pair-code" className="small">Autorizar este dispositivo (uma vez)</label>
         <input id="acad-pair-code" className="input" type="password" autoComplete="off"
           placeholder="Código de acesso privado" value={pairCode}
           onChange={e => setPairCode(e.target.value)} style={{ marginTop: 8, marginBottom: 10 }} />
         <Button onClick={pairDevice} disabled={pairBusy || !pairCode.trim()}>{pairBusy ? 'Verificando...' : 'Autorizar dispositivo'}</Button>
         {pairStatus && <p className="muted small" role="status">{pairStatus}</p>}
-      </div>
+      </div>}
       <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Explorar demonstração local</Button>
       <p className="dim small" style={{ marginTop: 12, lineHeight: 1.5 }}>A demonstração usa o armazenamento deste navegador, não sincroniza entre aparelhos e não separa os dados de duas pessoas.</p>
     </div>
