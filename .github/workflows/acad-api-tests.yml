@@ -6,6 +6,7 @@ on:
       - feat/cloudflare-two-profiles
     paths:
       - 'frontend/cloudflare/**'
+      - 'frontend/src/lib/acad-sync-engine*'
       - '.github/workflows/acad-api-tests.yml'
   pull_request:
     paths:
@@ -24,4 +25,4 @@ jobs:
         with:
           node-version: '22'
       - name: Test profile API
-        run: node --test frontend/cloudflare/worker.test.mjs
+        run: node --test frontend/cloudflare/worker.test.mjs frontend/src/lib/acad-sync-engine.test.mjs
