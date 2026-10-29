@@ -333,10 +333,10 @@ function Shell() {
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
-      {acadProfileId && <div style={{ position: 'fixed', top: 4, left: 10, right: 10, zIndex: 1001, display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', background: '#171717', color: '#fff', padding: '5px 10px', borderRadius: 10, fontSize: 12 }}>
-        <span>{acadProfileId === 'rafael' ? 'Meu perfil' : 'Perfil da minha mãe'} · D1{acadSyncError ? ' · Sincronização pendente' : ''}</span>
+      {(acadProfileId || (typeof window !== 'undefined' && window.location.hostname.startsWith('acad-preview.') && isGuest)) && <div style={{ position: 'fixed', top: 4, left: 10, right: 10, zIndex: 1001, display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', background: '#171717', color: '#fff', padding: '5px 10px', borderRadius: 10, fontSize: 12 }}>
+        <span>{acadProfileId ? (acadProfileId === 'rafael' ? 'Meu perfil' : 'Perfil da minha mãe') + ' · D1' : 'Demonstração local'}{acadSyncError ? ' · Sincronização pendente' : ''}</span>
         <button type="button" style={{ background: 'transparent', color: '#fff', border: '1px solid #666', padding: '4px 8px', borderRadius: 6 }} onClick={() => {
-          if (localStorage.getItem('acad_profile_dirty_' + acadProfileId) === '1') {
+          if (acadProfileId && localStorage.getItem('acad_profile_dirty_' + acadProfileId) === '1') {
             window.alert('Há alterações pendentes de sincronização. Aguarde ou recarregue e verifique antes de trocar o perfil.')
             return
           }
@@ -346,7 +346,7 @@ function Shell() {
         }}>Trocar perfil</button>
       </div>}
       {acadProfileId && acadSyncError && <div role="alert" style={{ position: 'fixed', top: 42, left: 10, right: 10, zIndex: 1002, background: '#5c2b2b', padding: 8, fontSize: 12, borderRadius: 8 }}>{acadSyncError}</div>}
-      <SyncBanner />
+      {!acadProfileId && <SyncBanner />}
       {!noTabs && <TabBar onStart={startFlow} />}
       <RestTimer />
       <Modals />
