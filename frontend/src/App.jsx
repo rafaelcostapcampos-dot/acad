@@ -110,7 +110,7 @@ function Shell() {
   const navigate = useNavigate()
   const loc = useLocation()
   const navType = useNavigationType()
-  const { S, user, ready } = useStore()
+  const { S, user, ready, acadProfileId, acadSyncError } = useStore()
   // iOS: whether timer sounds get past the ring/silent switch (Settings → Sounds). Page-level,
   // so it is applied here on load and on change rather than at each beep.
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])
@@ -333,6 +333,19 @@ function Shell() {
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
+      {acadProfileId && <div style={{ position: 'fixed', top: 4, left: 10, right: 10, zIndex: 1001, display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', background: '#171717', color: '#fff', padding: '5px 10px', borderRadius: 10, fontSize: 12 }}>
+        <span>{acadProfileId === 'rafael' ? 'Meu perfil' : 'Perfil da minha mãe'} · D1{acadSyncError ? ' · Sincronização pendente' : ''}</span>
+        <button type="button" style={{ background: 'transparent', color: '#fff', border: '1px solid #666', padding: '4px 8px', borderRadius: 6 }} onClick={() => {
+          if (localStorage.getItem('acad_profile_dirty_' + acadProfileId) === '1') {
+            window.alert('Há alterações pendentes de sincronização. Aguarde ou recarregue e verifique antes de trocar o perfil.')
+            return
+          }
+          localStorage.removeItem('acad_active_profile')
+          localStorage.removeItem('gym_guest')
+          window.location.reload()
+        }}>Trocar perfil</button>
+      </div>}
+      {acadProfileId && acadSyncError && <div role="alert" style={{ position: 'fixed', top: 42, left: 10, right: 10, zIndex: 1002, background: '#5c2b2b', padding: 8, fontSize: 12, borderRadius: 8 }}>{acadSyncError}</div>}
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
       <RestTimer />
