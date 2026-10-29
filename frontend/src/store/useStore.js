@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { acadProfile, acadSaveProfile } from '../lib/acad-profile-api.js'
+import { createAcadSync } from '../lib/acad-sync-engine.js'
 import { api, setRemoteAuth } from '../lib/api.js'
 import { localTZ } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
@@ -31,6 +33,11 @@ import { WC_DEFAULT } from '../lib/workout-controls.js'
 import { sanitizeAccent } from '../lib/accent.js'
 import { registerExerciseAliases } from '../lib/exercise-aliases.js'
 
+// ACAD stores each profile separately. Existing demo state stays under gym_state_v1.
+const acadId = () => { try { const id = localStorage.getItem('acad_active_profile'); return id === 'rafael' || id === 'mae' ? id : null } catch { return null } }
+const acadKey = id => 'acad_profile_state_' + id
+const acadRevKey = id => 'acad_profile_revision_' + id
+const acadDirtyKey = id => 'acad_profile_dirty_' + id
 const KEY = 'gym_state_v1'
 // Where the saved copy stands with the server: the revision it descends from, and its own `_ts`
 // at that moment. `rev` goes back to the server as `baseRev` on every push, so a write over a
@@ -331,7 +338,8 @@ export function restartedState(cur) {
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(KEY)
+    const id = acadId()
+    const raw = localStorage.getItem(id ? acadKey(id) : KEY)
     if (raw) {
       const saved = JSON.parse(raw)
       const s = sanitizeAccent(Object.assign(clone(DEF), saved))
@@ -359,6 +367,29 @@ export function restoredStateFor(local, remote, dirty = false) {
 }
 
 export const useStore = create((set, get) => {
+  const activeAcad = acadId()
+  const cloud = createAcadSync({ readProfile: acadProfile, writeProfile: acadSaveProfile })
+  if (activeAcad) {
+    const rev = Number(localStorage.getItem(acadRevKey(activeAcad)))
+    if (Number.isSafeInteger(rev) && rev >= 0) cloud.restore(activeAcad, rev)
+  }
+  let acadTimer = null
+  const scheduleAcadSync = () => {
+    if (!activeAcad) return
+    clearTimeout(acadTimer)
+    acadTimer = setTimeout(async () => {
+      acadTimer = null
+      const snapshot = get().S
+      try {
+        const rev = await cloud.save(snapshot)
+        localStorage.setItem(acadRevKey(activeAcad), String(rev))
+        // A newer local edit may have arrived while the request was in flight.
+        if (get().S === snapshot) localStorage.removeItem(acadDirtyKey(activeAcad))
+        else scheduleAcadSync()
+        set({ acadSyncError: '' })
+      } catch (e) { set({ acadSyncError: e.status === 409 ? 'Conflito de versões: dados locais preservados; não sobrescreva este perfil.' : 'Falha de sincronização: dados locais preservados.' }) }
+    }, 1800)
+  }
   let pushTm = null
   let saveTm = null
   let toldTooLarge = false
@@ -621,7 +652,7 @@ export const useStore = create((set, get) => {
   const persist = (S, push = true, stamp = true) => {
     if (refuseStale(S)) return
     const { base, owed } = metaOf()   // the copy being replaced; the new one stands where it stood
-    const joined = joinSaved(S, get()?.S)
+    const joined = activeAcad ? null : joinSaved(S, get()?.S)
     if (joined) S = joined
     // A join holds another tab's changes, which this copy then owes the server too.
     if (stamp || joined) S._ts = Math.max(Date.now(), (base?.ts || 0) + 1, Number(S._ts) || 0)
@@ -640,7 +671,8 @@ export const useStore = create((set, get) => {
       // The marker goes first: a tab that loads the copy in between gets an older base than the
       // copy's, which costs one merge at worst — never a newer one, which would lose data.
       saveMarker(base)
-      localStorage.setItem(KEY, stateJson(S))
+      localStorage.setItem(activeAcad ? acadKey(activeAcad) : KEY, stateJson(S))
+      if (activeAcad && stamp) localStorage.setItem(acadDirtyKey(activeAcad), '1')
       localStorage.setItem(WID_OWNER_KEY, seenOwner || '')
       const wid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
       localStorage.setItem(WID_KEY, wid)
@@ -667,6 +699,7 @@ export const useStore = create((set, get) => {
     // iOS ending it in the background before the page's timers run again) lost the last set.
     const workoutMoved = MOBILE && JSON.stringify(get()?.S?.active ?? null) !== JSON.stringify(S.active ?? null)
     set({ S })
+    if (activeAcad && stamp) scheduleAcadSync()
     // A copy that replaces the last one wholesale and keeps an older stamp — adopted from the
     // server — goes to the file at once. Until it does, the file holds the copy it replaced,
     // which looks newer, and a start in between would take that one back (restoreFromMirror).
@@ -1366,7 +1399,9 @@ export const useStore = create((set, get) => {
 
   return {
     S: S0,
-    user: user0,
+    acadProfileId: activeAcad,
+    acadSyncError: '',
+    user: activeAcad ? null : user0,
     ready: false,
     // The connection as the screens show it — see statusOf above for every field.
     sync: sync0,
@@ -1965,6 +2000,25 @@ export const useStore = create((set, get) => {
 
     // Boot: ask the server who we are, then pull.
     async boot() {
+      if (activeAcad) {
+        // Avoid the original /api/me remote flow; ACAD has its own D1 backend.
+        get().setGuest(true)
+        finishBoot()
+        if (localStorage.getItem(acadDirtyKey(activeAcad)) === '1') {
+          set({ acadSyncError: 'Alterações locais pendentes. Não vamos sobrescrever os dados automaticamente.' })
+        } else {
+          try {
+            const remote = await acadProfile(activeAcad)
+            // A different device may have updated this profile while this one was away.
+            cloud.restore(activeAcad, remote.revision)
+            localStorage.setItem(acadRevKey(activeAcad), String(remote.revision))
+            if (localStorage.getItem(acadDirtyKey(activeAcad)) !== '1') {
+              persist(sanitizeAccent(Object.assign(clone(DEF), remote.state)), false, false)
+            }
+          } catch (e) { set({ acadSyncError: 'Sem conexão com o D1; dados locais mantidos.' }) }
+        }
+        return
+      }
       // Mobile build: no backend by default — restore from the file mirror (the durable copy;
       // localStorage may have been evicted since the last run) and go straight in. Unless this
       // device was paired to a server ("connect to my server" mode, lib/remote.js), in which
