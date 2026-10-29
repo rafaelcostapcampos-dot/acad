@@ -299,6 +299,9 @@ const detectedLang = () => {
     const base = (navigator.language || '').toLowerCase().split('-')[0]
     if (RTL_LANGS.has(base)) return base
   } catch (e) { /* ignore */ }
+  // ACAD preview starts new profiles in Brazilian Portuguese; previously saved
+  // language preferences remain untouched by loadState().
+  if (typeof window !== 'undefined' && window.location.hostname.startsWith('acad-preview.')) return 'pt-BR'
   return 'en'
 }
 
