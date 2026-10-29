@@ -1,0 +1,27 @@
+name: ACAD backend tests
+
+on:
+  push:
+    branches:
+      - feat/cloudflare-two-profiles
+    paths:
+      - 'frontend/cloudflare/**'
+      - '.github/workflows/acad-api-tests.yml'
+  pull_request:
+    paths:
+      - 'frontend/cloudflare/**'
+      - '.github/workflows/acad-api-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test profile API
+        run: node --test frontend/cloudflare/worker.test.mjs
