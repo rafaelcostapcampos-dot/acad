@@ -129,7 +129,7 @@ export default function Login() {
       <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
         <button className="btn" disabled={!paired} onClick={() => checkProfile('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — verificar nuvem</button>
-        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae') style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — verificar nuvem</button>
+        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — verificar nuvem</button>
         {profileSummary && <p className="muted small" role="status">{profileSummary}</p>}
         <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>A interface completa do openGym está disponível abaixo. A sincronização com o D1 ainda não está integrada às telas originais.</p>
       </div>
