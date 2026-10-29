@@ -76,6 +76,24 @@ export default function Login() {
     try { const u = await passkeyLogin(); setUser(u, { adopt: true }); await adoptProfile(askAddDeviceData); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
     catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(passkeyError(e, t('Sign-in failed'))) }
   }
+  const [pairCode, setPairCode] = useState('')
+  const [pairStatus, setPairStatus] = useState('')
+  const [pairBusy, setPairBusy] = useState(false)
+  const pairDevice = async () => {
+    if (!pairCode.trim() || pairBusy) return
+    setPairBusy(true)
+    try {
+      const res = await fetch('/acad-api/session', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: pairCode.trim() }),
+      })
+      if (!res.ok) throw new Error(res.status === 503 ? 'Código ainda não configurado no servidor.' : 'Código inválido ou acesso indisponível.')
+      setPairCode('')
+      setPairStatus('Dispositivo autorizado. Os perfis serão liberados após a integração da sincronização.')
+    } catch (e) { setPairStatus(e.message) }
+    finally { setPairBusy(false) }
+  }
   const head = <>
     <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="dumbbell" /></div>
     <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.028em', margin: '10px 0 4px' }}>Mãe maromba!</h1>
@@ -95,6 +113,14 @@ export default function Login() {
         <button className="btn" disabled style={{ width: '100%', marginBottom: 10, opacity: .65 }}>Meu perfil — em preparação</button>
         <button className="btn" disabled style={{ width: '100%', opacity: .65 }}>Perfil da minha mãe — em preparação</button>
         <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Os perfis serão liberados quando a sincronização segura com o Cloudflare D1 estiver pronta. Ainda não grave treinos reais.</p>
+      </div>
+      <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
+        <label htmlFor="acad-pair-code" className="small">Autorizar este dispositivo (uma vez)</label>
+        <input id="acad-pair-code" className="input" type="password" autoComplete="off"
+          placeholder="Código de acesso privado" value={pairCode}
+          onChange={e => setPairCode(e.target.value)} style={{ marginTop: 8, marginBottom: 10 }} />
+        <Button onClick={pairDevice} disabled={pairBusy || !pairCode.trim()}>{pairBusy ? 'Verificando...' : 'Autorizar dispositivo'}</Button>
+        {pairStatus && <p className="muted small" role="status">{pairStatus}</p>}
       </div>
       <Button variant="primary" icon="play" onClick={() => setGuest(true)}>Explorar demonstração local</Button>
       <p className="dim small" style={{ marginTop: 12, lineHeight: 1.5 }}>A demonstração usa o armazenamento deste navegador, não sincroniza entre aparelhos e não separa os dados de duas pessoas.</p>
