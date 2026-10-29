@@ -7,6 +7,7 @@ import { DEMO, REPO } from '../lib/demo.js'
 import { guestAllowed } from '../lib/guest.js'
 import { useState, useRef, useEffect } from 'react'
 import { acadSession, acadProfile } from '../lib/acad-profile-api.js'
+import AcadWorkouts from './AcadWorkouts.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Segmented } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
@@ -81,6 +82,7 @@ export default function Login() {
   const [pairStatus, setPairStatus] = useState('')
   const [pairBusy, setPairBusy] = useState(false)
   const [paired, setPaired] = useState(false)
+  const [acadSelected, setAcadSelected] = useState(null)
   const [profileSummary, setProfileSummary] = useState('')
   useEffect(() => {
     if (typeof window === 'undefined' || !window.location.hostname.startsWith('acad-preview.')) return
@@ -118,6 +120,8 @@ export default function Login() {
   </>
   const wrap = { display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '78vh', textAlign: 'center' }
 
+  if (typeof window !== 'undefined' && window.location.hostname.startsWith('acad-preview.') && acadSelected && paired) return <AcadWorkouts profileId={acadSelected} onBack={() => setAcadSelected(null)} />
+
   // ACAD preview: visually establish the two profiles without pretending that static hosting
   // already provides separate cloud state. The shared guest mode remains explicitly a demo.
   // Remove this gate only after D1 persistence, authorization and per-profile isolation pass tests.
@@ -128,10 +132,10 @@ export default function Login() {
       <p className="muted" style={{ marginBottom: 28 }}>Acompanhamento de treinos</p>
       <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <h3 style={{ marginBottom: 12 }}>Escolha seu perfil</h3>
-        <button className="btn" disabled={!paired} onClick={() => checkProfile('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — consultar D1</button>
-        <button className="btn" disabled={!paired} onClick={() => checkProfile('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — consultar D1</button>
+        <button className="btn" disabled={!paired} onClick={() => setAcadSelected('rafael')} style={{ width: '100%', marginBottom: 10, opacity: paired ? 1 : .65 }}>Meu perfil — abrir treinos</button>
+        <button className="btn" disabled={!paired} onClick={() => setAcadSelected('mae')} style={{ width: '100%', opacity: paired ? 1 : .65 }}>Perfil da minha mãe — abrir treinos</button>
         {profileSummary && <p className="muted small" role="status">{profileSummary}</p>}
-        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>Consulta somente leitura. O registro de treinos continua desabilitado até a integração completa do openGym ao D1.</p>
+        <p className="muted small" style={{ marginTop: 14, lineHeight: 1.5 }}>O registro inicial salva exercícios diretamente no D1. A sincronização das rotinas completas do openGym ainda está em desenvolvimento.</p>
       </div>
       {!paired && <div className="card" style={{ textAlign: 'start', marginBottom: 12 }}>
         <label htmlFor="acad-pair-code" className="small">Autorizar este dispositivo (uma vez)</label>
